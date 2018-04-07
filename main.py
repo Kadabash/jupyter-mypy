@@ -22,8 +22,7 @@ from IPython.core.magic import register_cell_magic
 
 @register_cell_magic
 def typecheck(line, cell):
-    """
-    Run the following cell though mypy.
+    """Run the code in cell through mypy. Does NOT execute code in IPython!
 
     Any parameters that would normally be passed to the mypy cli
     can be passed on the first line, with the exception of the
@@ -45,11 +44,36 @@ def typecheck(line, cell):
 
     mypy_result = api.run(line.split() + ['-c', cell])
 
+    return_value = True
     if mypy_result[0]:  # print mypy stdout
+        print("MyPy errors:")
         print(mypy_result[0])
 
     if mypy_result[1]:  # print mypy stderr
+        print("\nMyPy stderr:")
         print(mypy_result[1])
 
-    shell = get_ipython()
-    shell.run_cell(cell)
+
+@register_cell_magic
+def typecheck_and_run(line, cell):
+    """Typecheck cell using mypy and run it if no errors exist."""
+    from IPython import get_ipython
+    from mypy import api
+
+    mypy_result = api.run(line.split() + ['-c', cell])
+
+    return_value = True
+    if mypy_result[0]:  # print mypy stdout
+        print("MyPy errors:")
+        print(mypy_result[0])
+        return_value = False
+
+    if mypy_result[1]:  # print mypy stderr
+        print("\nMyPy stderr:")
+        print(mypy_result[1])
+        return_value = False
+        
+    if return_value:  # Run only if no errors exist
+        shell = get_ipython()
+        shell.run_cell(cell)
+    
